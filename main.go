@@ -1,74 +1,30 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
-	"strconv"
-	"github.com/gorilla/mux"
-	"encoding/json"
+	"github.com/akhidasTech/mcpcalculator/mcp"
 )
 
-// Response represents the JSON response structure
-type Response struct {
-	Result interface{} `json:"result"`
-	Error  string      `json:"error,omitempty"`
+// Add adds two numbers
+func Add(a int, b int) int {
+	return a + b
 }
 
-// MCPServer represents our server structure
-type MCPServer struct {
-	name   string
-	router *mux.Router
-}
-
-// NewMCPServer creates a new MCP server instance
-func NewMCPServer(name string) *MCPServer {
-	return &MCPServer{
-		name:   name,
-		router: mux.NewRouter(),
-	}
-}
-
-// Add handles the addition of two numbers
-func (s *MCPServer) Add(w http.ResponseWriter, r *http.Request) {
-	queryParams := r.URL.Query()
-	a, err1 := strconv.Atoi(queryParams.Get("a"))
-	b, err2 := strconv.Atoi(queryParams.Get("b"))
-
-	if err1 != nil || err2 != nil {
-		json.NewEncoder(w).Encode(Response{Error: "Invalid parameters"})
-		return
-	}
-
-	result := a + b
-	json.NewEncoder(w).Encode(Response{Result: result})
-}
-
-// GetGreeting handles the greeting endpoint
-func (s *MCPServer) GetGreeting(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	name := vars["name"]
-	greeting := fmt.Sprintf("Hello, %s!", name)
-	json.NewEncoder(w).Encode(Response{Result: greeting})
-}
-
-// SetupRoutes configures all the routes for our server
-func (s *MCPServer) SetupRoutes() {
-	s.router.HandleFunc("/add", s.Add).Methods("GET")
-	s.router.HandleFunc("/greeting/{name}", s.GetGreeting).Methods("GET")
-}
-
-// Start starts the server on the specified port
-func (s *MCPServer) Start(port string) error {
-	s.SetupRoutes()
-	log.Printf("Starting %s server on port %s", s.name, port)
-	return http.ListenAndServe(":" + port, s.router)
+// GetGreeting returns a personalized greeting
+func GetGreeting(name string) string {
+	return "Hello, " + name + "!"
 }
 
 func main() {
 	// Create a new MCP server
-	mcp := NewMCPServer("Demo")
+	server := mcp.NewMCPServer("Demo")
+
+	// Register the Add tool
+	server.Tool()(Add)
+
+	// Register the greeting resource
+	server.Resource("greeting/{name}")(GetGreeting)
 
 	// Start the server
-	log.Fatal(mcp.Start("8080"))
+	log.Fatal(server.Start("8080"))
 }
